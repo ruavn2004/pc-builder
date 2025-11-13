@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xây dựng PC (Admin Full Chức Năng)</title>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
-        /* === BẮT ĐẦU CSS === */
+        /* (Toàn bộ CSS chung của bạn giữ nguyên, không thay đổi) */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f0f2f5;
@@ -18,13 +20,11 @@
             min-height: 100vh;
             box-sizing: border-box; 
         }
-        /* Responsive cho điện thoại */
         @media (max-width: 600px) {
             body { padding: 10px; }
             .container { padding: 15px; }
-            .form-grid { grid-template-columns: 1fr; } /* Admin trên 1 cột */
+            .form-grid { grid-template-columns: 1fr; }
         }
-
         .container {
             background-color: #ffffff;
             padding: 30px;
@@ -37,12 +37,7 @@
         }
         h1 { text-align: center; color: #1a1a1a; margin-top: 0; font-size: 2em; }
         h2 { text-align: center; color: #333; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        h3 {
-            margin-top: 30px;
-            color: #1a1a1a;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 5px;
-        }
+        h3 { margin-top: 30px; color: #1a1a1a; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
         p { text-align: center; color: #555; margin-bottom: 30px; font-size: 1.1em; }
         .component { display: flex; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; }
         .component label { font-weight: 600; color: #333; flex-basis: 30%; min-width: 140px; }
@@ -82,6 +77,32 @@
         .form-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
         #admin-edit-panel { border-top: 2px solid #eee; margin-top: 30px; padding-top: 20px; }
         #toggle-admin-btn { position: fixed; bottom: 20px; right: 20px; z-index: 999; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    
+        /* ===== CSS CHO BÁO GIÁ ẨN (ĐỂ CHỤP ẢNH) ===== */
+        .hidden-quote-container {
+            position: absolute;
+            left: -9999px; /* Đưa ra ngoài màn hình */
+            top: 0;
+            width: 800px; /* Cố định chiều rộng để layout không vỡ */
+            background: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .hidden-quote-container .quote-header { padding: 30px; text-align: center; border-bottom: 1px dashed #ccc; }
+        .hidden-quote-container .quote-header h1 { font-size: 2em; color: #d90429; margin: 0 0 10px 0; }
+        .hidden-quote-container .quote-header p { margin: 2px 0; color: #333; }
+        .hidden-quote-container .quote-list { padding: 20px 30px; }
+        .hidden-quote-container .quote-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 0; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+        .hidden-quote-container .quote-item:last-child { border-bottom: none; }
+        .hidden-quote-container .item-info { flex-basis: 70%; min-width: 250px; }
+        .hidden-quote-container .item-name { font-size: 1.1em; font-weight: 600; color: #000; }
+        .hidden-quote-container .item-details { font-size: 0.9em; color: #555; margin-top: 5px; }
+        .hidden-quote-container .item-price { flex-basis: 30%; min-width: 120px; text-align: right; font-size: 1.1em; font-weight: 600; color: #d90429; margin-top: 5px; }
+        .hidden-quote-container .quote-footer { padding: 30px; background-color: #f8f8f8; }
+        .hidden-quote-container .total-summary { display: flex; justify-content: flex-end; font-size: 1.5em; font-weight: bold; color: #d90429; border-bottom: 1px solid #ddd; padding-bottom: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .hidden-quote-container .total-summary span { margin-left: 20px; }
+        .hidden-quote-container .notes { font-size: 0.85em; color: #666; white-space: pre-wrap; }
+        /* ============================================= */
+
     </style>
 </head>
 <body>
@@ -158,7 +179,7 @@
             </div>
             <div class="modal-actions">
                 <button id="cancel-print-btn" class="btn btn-secondary">Hủy Bỏ</button>
-                <button id="view-quote-btn" class="btn btn-print">📄 Xem Báo Giá</button>
+                <button id="download-quote-btn" class="btn btn-print">📷 Tải Ảnh Báo Giá</button>
             </div>
         </div>
     </div>
@@ -186,12 +207,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalPriceElement = document.getElementById('total-price');
     const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
     
-    // (Lấy các phần tử Modal giữ nguyên)
+    // (Lấy các phần tử Modal: Đã cập nhật)
     const modal = document.getElementById('print-preview-modal');
     const reviewBtn = document.getElementById('review-btn');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const cancelPrintBtn = document.getElementById('cancel-print-btn');
-    const viewQuoteBtn = document.getElementById('view-quote-btn');
+    const downloadQuoteBtn = document.getElementById('download-quote-btn'); // Đã đổi tên
     const previewTbody = document.getElementById('preview-tbody');
     const previewTotalElement = document.getElementById('preview-total');
 
@@ -211,9 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentDatabase = {};
     
-    // ===== BIẾN MỚI ĐỂ SỬA LỖI POPUP TRÊN ĐIỆN THOẠI =====
-    let newWindow = null; // Giữ cửa sổ mới
-
     // (Hàm 0.1 -> 0.4: loadDatabase, saveDatabase, resetDatabase, parseCurrency giữ nguyên)
     function loadDatabase() {
         let db = JSON.parse(localStorage.getItem('pcBuilderDatabase'));
@@ -245,7 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
         editTypeSelect.appendChild(defaultEditTypeOption);
         for (const componentType in currentDatabase) {
             const selectElement = document.getElementById(componentType);
-            // Fix lỗi có thể xảy ra nếu HTML bị thiếu
             if (!selectElement) {
                 console.warn(`Không tìm thấy phần tử cho: ${componentType}`);
                 continue;
@@ -277,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!select) return;
             const quantityInput = component.querySelector('.component-quantity');
             const selectedOption = select.options[select.selectedIndex];
-            if (!selectedOption) return; // Fix lỗi khi selector rỗng
+            if (!selectedOption) return; 
             const price = parseFloat(selectedOption.dataset.price) || 0;
             const quantity = parseInt(quantityInput.value) || 0;
             if (price > 0 && quantity > 0) {
@@ -328,19 +345,12 @@ document.addEventListener('DOMContentLoaded', () => {
         previewTotalElement.textContent = currencyFormatter.format(newGrandTotal);
     }
 
-    // ===== HÀM 7 (ĐÃ CẬP NHẬT ĐỂ SỬA LỖI POPUP) =====
-    function createQuotePage() {
-        // FIX: Mở cửa sổ NGAY LẬP TỨC khi user click
-        newWindow = window.open("", "_blank");
-        if (!newWindow) {
-            alert("Trình duyệt đã chặn cửa sổ mới. Vui lòng cho phép 'Pop-ups' cho trang này.");
-            return;
-        }
-        
+    // ===== HÀM 7 (ĐÃ VIẾT LẠI HOÀN TOÀN) =====
+    // Tạo Báo Giá Đẹp & Tải Ảnh Nét
+    function downloadQuoteImage() {
         const quoteRows = previewTbody.querySelectorAll('tr');
         if (quoteRows.length === 0) {
             alert("Không có gì để hiển thị.");
-            newWindow.close(); // Đóng tab trống
             return;
         }
 
@@ -374,157 +384,65 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // == BẠN CÓ THỂ SỬA THÔNG TIN CỬA HÀNG Ở ĐÂY ==
-        const tenCuaHang = "LOGO CỦA BẠN / TÊN CỬA HÀNG";
-        const diaChi = "Địa chỉ của bạn";
-        const sdt = "Hotline: 0123.456.789";
-        const ghiChu = "Quý khách vui lòng kiểm tra kỹ hàng hóa...";
+        
+        const ghiChu = "Quý khách lưu ý: Giá bán, khuyến mại của sản phẩm và tình trạng còn hàng có thể bị thay đổi bất cứ lúc nào mà không kịp báo trước";
         // ============================================
-
-        const newPageContent = `
-            <!DOCTYPE html>
-            <html lang="vi">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Báo Giá Cấu Hình PC</title>
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                        background-color: #f4f4f4;
-                        margin: 0;
-                        padding: 20px;
-                    }
-                    .quote-container {
-                        max-width: 800px;
-                        margin: 20px auto;
-                        background-color: #fff;
-                        border: 1px solid #ddd;
-                        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-                    }
-                    .quote-header {
-                        padding: 30px;
-                        text-align: center;
-                        border-bottom: 1px dashed #ccc;
-                    }
-                    .quote-header h1 {
-                        font-size: 2em;
-                        color: #d90429;
-                        margin: 0 0 10px 0;
-                    }
-                    .quote-header p {
-                        margin: 2px 0;
-                        color: #333;
-                    }
-                    .quote-list {
-                        padding: 20px 30px;
-                    }
-                    .quote-item {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: flex-start;
-                        padding: 20px 0;
-                        border-bottom: 1px solid #eee;
-                        flex-wrap: wrap; /* Cho phép xuống hàng trên ĐT */
-                    }
-                    .quote-item:last-child {
-                        border-bottom: none;
-                    }
-                    .item-info {
-                        flex-basis: 70%;
-                        min-width: 250px; /* Tránh bị co quá nhỏ */
-                    }
-                    .item-name {
-                        font-size: 1.1em;
-                        font-weight: 600;
-                        color: #000;
-                    }
-                    .item-details {
-                        font-size: 0.9em;
-                        color: #555;
-                        margin-top: 5px;
-                    }
-                    .item-price {
-                        flex-basis: 30%;
-                        min-width: 120px; /* Tránh bị co quá nhỏ */
-                        text-align: right;
-                        font-size: 1.1em;
-                        font-weight: 600;
-                        color: #d90429;
-                        margin-top: 5px; /* Thêm margin trên ĐT */
-                    }
-                    .quote-footer {
-                        padding: 30px;
-                        background-color: #f8f8f8;
-                    }
-                    .total-summary {
-                        display: flex;
-                        justify-content: flex-end;
-                        font-size: 1.5em;
-                        font-weight: bold;
-                        color: #d90429;
-                        border-bottom: 1px solid #ddd;
-                        padding-bottom: 20px;
-                        margin-bottom: 20px;
-                        flex-wrap: wrap; /* Xuống hàng trên ĐT */
-                    }
-                    .total-summary span {
-                        margin-left: 20px;
-                    }
-                    .notes {
-                        font-size: 0.85em;
-                        color: #666;
-                        white-space: pre-wrap; /* Giữ nguyên định dạng xuống dòng */
-                    }
-                    .print-btn {
-                        display: block;
-                        width: 200px;
-                        margin: 20px auto 0 auto;
-                        padding: 12px;
-                        background-color: #d90429;
-                        color: #fff;
-                        border: none;
-                        border-radius: 6px;
-                        font-size: 1em;
-                        font-weight: 600;
-                        text-align: center;
-                        cursor: pointer;
-                    }
-                    @media print {
-                        body { background-color: #fff; padding: 0; }
-                        .quote-container { margin: 0; border: none; box-shadow: none; }
-                        .print-btn { display: none; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="quote-container">
-                    <div class="quote-header">
-                        <h1>${tenCuaHang}</h1>
-                        <p>${diaChi}</p>
-                        <p>${sdt}</p>
-                    </div>
-                    <div class="quote-list">
-                        ${itemsHTML}
-                    </div>
-                    <div class="quote-footer">
-                        <div class="total-summary">
-                            <span>Tổng chi phí:</span>
-                            <span>${currencyFormatter.format(finalTotal)}</span>
-                        </div>
-                        <div class="notes">
-                            <strong>Quý khách lưu ý:</strong>
-                            ${ghiChu}
-                        </div>
-                    </div>
+        
+        // 1. Tạo một 'div' ẩn để chứa báo giá đẹp
+        const hiddenQuote = document.createElement('div');
+        hiddenQuote.className = 'hidden-quote-container'; // Dùng CSS đã viết
+        hiddenQuote.innerHTML = `
+            <div class="quote-header">
+                <h1>${tenCuaHang}</h1>
+                <p>${diaChi}</p>
+                <p>${sdt}</p>
+            </div>
+            <div class="quote-list">
+                ${itemsHTML}
+            </div>
+            <div class="quote-footer">
+                <div class="total-summary">
+                    <span>Tổng chi phí:</span>
+                    <span>${currencyFormatter.format(finalTotal)}</span>
                 </div>
-                <button class="print-btn" onclick="window.print()">🖨️ In Báo Giá</button>
-            </body>
-            </html>
+                <div class="notes">
+                    <strong>Quý khách lưu ý:</strong>
+                    ${ghiChu}
+                </div>
+            </div>
         `;
         
-        newWindow.document.write(newPageContent);
-        newWindow.document.close();
-        hidePrintPreview();
+        // 2. Thêm 'div' ẩn vào trang
+        document.body.appendChild(hiddenQuote);
+
+        // 3. Chụp ảnh 'div' ẩn này
+        html2canvas(hiddenQuote, {
+            scale: 2, // Tăng độ nét
+            useCORS: true,
+            backgroundColor: '#ffffff' // Đảm bảo nền trắng
+        }).then(canvas => {
+            // 4. Tạo link tải về
+            const imageURL = canvas.toDataURL('image/png');
+            const downloadLink = document.createElement('a');
+            downloadLink.href = imageURL;
+            downloadLink.download = 'bao-gia-pc.png'; // Tên file
+            
+            // 5. Tự động click link để tải
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+            // 6. Xóa 'div' ẩn đi
+            document.body.removeChild(hiddenQuote);
+            
+            // 7. Đóng modal
+            hidePrintPreview();
+        }).catch(err => {
+            console.error("Lỗi chụp ảnh:", err);
+            // Dọn dẹp nếu có lỗi
+            document.body.removeChild(hiddenQuote);
+            hidePrintPreview();
+        });
     }
     // ===== HẾT HÀM 7 =====
 
@@ -599,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalBtn.addEventListener('click', hidePrintPreview);
     cancelPrintBtn.addEventListener('click', hidePrintPreview);
     
-    viewQuoteBtn.addEventListener('click', createQuotePage);
+    downloadQuoteBtn.addEventListener('click', downloadQuoteImage); // Đã cập nhật
     
     window.onclick = function(event) { if (event.target == modal) hidePrintPreview(); }
     toggleAdminBtn.addEventListener('click', () => {
