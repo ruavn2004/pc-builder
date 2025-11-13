@@ -6,7 +6,7 @@
     <title>Xây dựng PC (Admin Full Chức Năng)</title>
     
     <style>
-        /* (Toàn bộ CSS chung của bạn giữ nguyên, không thay đổi) */
+        /* === BẮT ĐẦU CSS === */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f0f2f5;
@@ -14,11 +14,11 @@
             flex-direction: column;
             align-items: center;
             padding: 30px;
-            padding-top: 10px; /* Giảm padding trên điện thoại */
+            padding-top: 10px;
             min-height: 100vh;
-            box-sizing: border-box; /* Thêm cái này để padding không bị lỗi */
+            box-sizing: border-box; 
         }
-        /* Thêm một chút responsive cho điện thoại */
+        /* Responsive cho điện thoại */
         @media (max-width: 600px) {
             body { padding: 10px; }
             .container { padding: 15px; }
@@ -33,7 +33,7 @@
             width: 100%;
             max-width: 900px;
             margin-bottom: 30px;
-            box-sizing: border-box; /* Thêm cái này */
+            box-sizing: border-box;
         }
         h1 { text-align: center; color: #1a1a1a; margin-top: 0; font-size: 2em; }
         h2 { text-align: center; color: #333; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
@@ -44,12 +44,12 @@
             padding-bottom: 5px;
         }
         p { text-align: center; color: #555; margin-bottom: 30px; font-size: 1.1em; }
-        .component { display: flex; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; /* Cho phép xuống hàng trên điện thoại */ }
+        .component { display: flex; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; }
         .component label { font-weight: 600; color: #333; flex-basis: 30%; min-width: 140px; }
         .component-select { flex-grow: 1; padding: 10px 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; background-color: #fafafa; }
         .component-quantity { width: 75px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; text-align: center; box-sizing: border-box; flex-shrink: 0; }
-        .summary-table { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; overflow-x: auto; /* Cho phép cuộn bảng trên ĐT */ }
-        .summary-table table { width: 100%; border-collapse: collapse; min-width: 600px; /* Giữ bảng không bị vỡ */ }
+        .summary-table { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; overflow-x: auto; }
+        .summary-table table { width: 100%; border-collapse: collapse; min-width: 600px; }
         .summary-table th, .summary-table td { border: 1px solid #ddd; padding: 12px 15px; text-align: left; font-size: 15px; }
         .summary-table th { background-color: #f8f8f8; font-weight: 600; }
         .summary-table td:nth-child(2), .summary-table td:nth-child(3) { text-align: center; }
@@ -66,7 +66,7 @@
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; }
         .modal-header h2 { margin: 0; color: #333; border: none; }
         .close-btn { color: #aaa; font-size: 28px; font-weight: bold; border: none; background: none; cursor: pointer; }
-        .modal-body { padding: 20px 0; overflow-x: auto; /* Cho phép cuộn bảng modal trên ĐT */ }
+        .modal-body { padding: 20px 0; overflow-x: auto; }
         .modal-body table { width: 100%; border-collapse: collapse; min-width: 600px; }
         .modal-body th, .modal-body td { border: 1px solid #ddd; padding: 8px; }
         .modal-body input { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
@@ -79,11 +79,11 @@
         .form-group label { font-weight: 600; color: #333; margin-bottom: 5px; }
         .form-group input, .form-group select { padding: 10px 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
         .form-group input:disabled, .form-group select:disabled { background-color: #eee; cursor: not-allowed; }
-        .form-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; } /* Cho phép xuống hàng */
+        .form-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
         #admin-edit-panel { border-top: 2px solid #eee; margin-top: 30px; padding-top: 20px; }
         #toggle-admin-btn { position: fixed; bottom: 20px; right: 20px; z-index: 999; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
     </style>
-    </head>
+</head>
 <body>
     
     <div class="container" id="build-area">
@@ -245,6 +245,11 @@ document.addEventListener('DOMContentLoaded', () => {
         editTypeSelect.appendChild(defaultEditTypeOption);
         for (const componentType in currentDatabase) {
             const selectElement = document.getElementById(componentType);
+            // Fix lỗi có thể xảy ra nếu HTML bị thiếu
+            if (!selectElement) {
+                console.warn(`Không tìm thấy phần tử cho: ${componentType}`);
+                continue;
+            }
             const labelText = selectElement.closest('.component').querySelector('label').textContent.replace(':', '');
             const defaultUserOption = new Option(`-- Chọn ${labelText} --`, "0");
             defaultUserOption.dataset.price = "0";
@@ -272,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!select) return;
             const quantityInput = component.querySelector('.component-quantity');
             const selectedOption = select.options[select.selectedIndex];
+            if (!selectedOption) return; // Fix lỗi khi selector rỗng
             const price = parseFloat(selectedOption.dataset.price) || 0;
             const quantity = parseInt(quantityInput.value) || 0;
             if (price > 0 && quantity > 0) {
@@ -325,14 +331,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===== HÀM 7 (ĐÃ CẬP NHẬT ĐỂ SỬA LỖI POPUP) =====
     function createQuotePage() {
         // FIX: Mở cửa sổ NGAY LẬP TỨC khi user click
-        // Chúng ta mở nó trước, rồi điền nội dung sau.
         newWindow = window.open("", "_blank");
         if (!newWindow) {
             alert("Trình duyệt đã chặn cửa sổ mới. Vui lòng cho phép 'Pop-ups' cho trang này.");
             return;
         }
         
-        // 2. Lấy dữ liệu từ modal
         const quoteRows = previewTbody.querySelectorAll('tr');
         if (quoteRows.length === 0) {
             alert("Không có gì để hiển thị.");
@@ -369,11 +373,13 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         });
 
-      
+        // == BẠN CÓ THỂ SỬA THÔNG TIN CỬA HÀNG Ở ĐÂY ==
+        const tenCuaHang = "LOGO CỦA BẠN / TÊN CỬA HÀNG";
+        const diaChi = "Địa chỉ của bạn";
+        const sdt = "Hotline: 0123.456.789";
         const ghiChu = "Quý khách vui lòng kiểm tra kỹ hàng hóa...";
         // ============================================
 
-        // 3. Tạo nội dung trang
         const newPageContent = `
             <!DOCTYPE html>
             <html lang="vi">
@@ -516,11 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </html>
         `;
         
-        // 4. Ghi nội dung vào cửa sổ mới
         newWindow.document.write(newPageContent);
         newWindow.document.close();
-        
-        // 5. Đóng modal
         hidePrintPreview();
     }
     // ===== HẾT HÀM 7 =====
@@ -596,14 +599,6 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalBtn.addEventListener('click', hidePrintPreview);
     cancelPrintBtn.addEventListener('click', hidePrintPreview);
     
-    // ===== FIX 2: Sửa lỗi Popup trên điện thoại =====
-    // Chúng ta phải mở cửa sổ mới ngay khi bấm nút "Xem Báo Giá",
-    // chứ không phải đợi hàm createQuotePage chạy xong.
-    // Nhưng vì user còn phải sửa trong modal, nên cách này là không thể.
-    
-    // Thay vào đó, chúng ta sẽ gọi hàm createQuotePage
-    // trực tiếp từ nút trong modal, đây là hành động
-    // "trực tiếp" (direct user action) nên sẽ được phép mở popup.
     viewQuoteBtn.addEventListener('click', createQuotePage);
     
     window.onclick = function(event) { if (event.target == modal) hidePrintPreview(); }
