@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <title>Xây dựng PC (Có Admin & Xem Ảnh)</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* --- Cài đặt chung --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column; /* Xếp 2 khối theo chiều dọc */
+            align-items: center; /* Canh giữa */
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        /* --- Khung chung (cho cả User và Admin) --- */
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 30px; /* Khoảng cách giữa 2 khối */
+        }
+        
+        h1 { text-align: center; color: #1a1a1a; margin-top: 0; font-size: 2em; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        p { text-align: center; color: #555; margin-bottom: 30px; font-size: 1.1em; }
+
+        /* --- CSS cho Khu vực Build PC --- */
+        .component { display: flex; align-items: center; margin-bottom: 20px; gap: 15px; }
+        .component label { font-weight: 600; color: #333; flex-basis: 30%; min-width: 140px; }
+        .component-select { flex-grow: 1; padding: 10px 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; background-color: #fafafa; }
+        .component-quantity { width: 75px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; text-align: center; box-sizing: border-box; flex-shrink: 0; }
+        .summary-table { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
+        .summary-table table { width: 100%; border-collapse: collapse; }
+        .summary-table th, .summary-table td { border: 1px solid #ddd; padding: 12px 15px; text-align: left; font-size: 15px; }
+        .summary-table th { background-color: #f8f8f8; font-weight: 600; }
+        .summary-table td:nth-child(2), .summary-table td:nth-child(3) { text-align: center; }
+        .summary-table td:nth-child(4), .summary-table td:nth-child(5) { text-align: right; font-weight: 500; }
+        .total { margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; text-align: right; }
+        .total h2 { color: #d90429; font-size: 1.8em; margin: 0; border: none; }
+        .action-buttons { display: flex; justify-content: flex-end; gap: 15px; margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
+
+        /* --- Nút bấm chung --- */
+        .btn { padding: 12px 20px; font-size: 16px; font-weight: 600; color: #ffffff; border: none; border-radius: 6px; cursor: pointer; text-transform: uppercase; transition: all 0.2s ease; }
+        .btn:hover { opacity: 0.85; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .btn-print { background-color: #d90429; } /* Đỏ */
+        .btn-secondary { background-color: #6c757d; } /* Xám */
+        .btn-admin { background-color: #007bff; } /* Xanh */
+        .btn-danger { background-color: #dc3545; } /* Đỏ (cho Reset) */
+
+        /* --- Cửa sổ Modal (Popup) --- */
+        .modal-hidden { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0, 0, 0, 0.5); animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 25px 30px; border: 1px solid #888; width: 90%; max-width: 900px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .modal-header h2 { margin: 0; color: #333; border: none; }
+        .close-btn { color: #aaa; font-size: 28px; font-weight: bold; border: none; background: none; cursor: pointer; }
+        .close-btn:hover { color: #000; }
+        .modal-body { padding: 20px 0; }
+        .modal-body p { text-align: left; margin-bottom: 15px; }
+        .modal-body table { width: 100%; border-collapse: collapse; }
+        .modal-body th, .modal-body td { border: 1px solid #ddd; padding: 8px; }
+        .modal-body th { background-color: #f8f8f8; }
+        .modal-body input { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .modal-body input:disabled { background-color: #f0f0f0; color: #333; border: 1px solid #ddd; }
+        .modal-body tfoot td { font-size: 1.1em; color: #d90429; }
+        .modal-actions { text-align: right; border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; }
+
+        /* --- CSS MỚI CHO KHU VỰC ADMIN --- */
+        #admin-panel { border-top: 4px solid #007bff; }
+        #admin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-weight: 600; color: #333; margin-bottom: 5px; }
+        .form-group input, .form-group select { padding: 10px 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+        .admin-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; margin-top: 20px; }
+        #toggle-admin-btn { position: fixed; bottom: 20px; right: 20px; z-index: 999; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    </style>
+    </head>
+<body>
+    
+    <div class="container" id="build-area">
+        <h1>Xây Dựng Cấu Hình PC</h1>
+        <p>Chọn linh kiện, số lượng và xem tóm tắt cấu hình của bạn.</p>
+        
+        <div id="selector-area">
+            <div class="component">
+                <label for="cpu">CPU (Vi xử lý):</label>
+                <select id="cpu" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="5">
+            </div>
+            <div class="component">
+                <label for="mainboard">Mainboard:</label>
+                <select id="mainboard" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="5">
+            </div>
+            <div class="component">
+                <label for="ram">RAM:</label>
+                <select id="ram" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="10">
+            </div>
+            <div class="component">
+                <label for="vga">VGA (Card đồ họa):</label>
+                <select id="vga" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="5">
+            </div>
+            <div class="component">
+                <label for="ssd">Ổ cứng SSD:</label>
+                <select id="ssd" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="10">
+            </div>
+            <div class="component">
+                <label for="hdd">Ổ cứng HDD:</label>
+                <select id="hdd" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="10">
+            </div>
+            <div class="component">
+                <label for="cooler">Tản nhiệt:</label>
+                <select id="cooler" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="5">
+            </div>
+            <div class="component">
+                <label for="monitor">Màn hình:</label>
+                <select id="monitor" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="5">
+            </div>
+            <div class="component">
+                <label for="psu">PSU (Nguồn):</label>
+                <select id="psu" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="5">
+            </div>
+            <div class="component">
+                <label for="case">Vỏ Case:</label>
+                <select id="case" class="component-select"></select>
+                <input type="number" class="component-quantity" value="1" min="0" max="5">
+            </div>
+            </div>
+
+        <div class="summary-table">
+            <h2>Bảng Tóm Tắt Cấu Hình</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tên Linh Kiện</th>
+                        <th>Bảo Hành</th>
+                        <th>Số Lượng</th>
+                        <th>Đơn Giá</th>
+                        <th>Thành Tiền</th>
+                    </tr>
+                </thead>
+                <tbody id="summary-tbody"></tbody>
+            </table>
+        </div>
+
+        <div class="total">
+            <h2>Tổng: <span id="total-price">0 VNĐ</span></h2>
+        </div>
+
+        <div class="action-buttons">
+            <button id="review-btn" class="btn btn-print">📝 Xem & Xem Ảnh</button>
+        </div>
+    </div>
+    <div class="container" id="admin-panel" style="display: none;"> <h2>Quản Trị Dữ Liệu</h2>
+        <form id="admin-form">
+            <div class="form-group">
+                <label for="admin-type">Loại linh kiện:</label>
+                <select id="admin-type"></select>
+            </div>
+            <div class="form-group">
+                <label for="admin-name">Tên linh kiện:</label>
+                <input type="text" id="admin-name" required placeholder="ví dụ: Intel Core i5-13400F">
+            </div>
+            <div class="form-group">
+                <label for="admin-price">Đơn giá (VNĐ):</label>
+                <input type="number" id="admin-price" required placeholder="ví dụ: 5200000">
+            </div>
+            <div class="form-group">
+                <label for="admin-warranty">Bảo hành (tháng):</label>
+                <input type="text" id="admin-warranty" required placeholder="ví dụ: 36T">
+            </div>
+
+            <div class="admin-actions">
+                <button type="submit" class="btn btn-admin">➕ Thêm Linh Kiện</button>
+                <button type="button" id="reset-db-btn" class="btn btn-danger">♻️ Reset Kho Về Gốc</button>
+            </div>
+        </form>
+    </div>
+    <button id="toggle-admin-btn" class="btn btn-admin">👨‍💻 Mở Admin</button>
+
+    <div id="print-preview-modal" class="modal-hidden">
+        <div class="modal-content" id="capture-area">
+            <div class="modal-header">
+                <h2>Kiểm Tra & Chỉnh Sửa Cấu Hình</h2>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có thể sửa số lượng, đơn giá. Thành tiền và tổng cộng sẽ tự động cập nhật.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tên Linh Kiện</th>
+                            <th>Bảo Hành</th>
+                            <th>Số Lượng</th>
+                            <th>Đơn Giá</th>
+                            <th>Thành Tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody id="preview-tbody"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" style="text-align: right; font-weight: bold; font-size: 1.2em;">TỔNG CỘNG:</td>
+                            <td id="preview-total" style="text-align: right; font-weight: bold; font-size: 1.2em;">0 VNĐ</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-print-btn" class="btn btn-secondary">Hủy Bỏ</button>
+                <button id="view-image-btn" class="btn btn-print">🖼️ Xem Ảnh Cấu Hình</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // (Toàn bộ code JavaScript từ HÀM 0 đến HÀM 6 giữ nguyên)
+    
+    // ===== KHO DỮ LIỆU GỐC (BAN ĐẦU) =====
+    const initialDatabase = {
+        cpu: [ { name: "Intel Core i3-12100F", price: 2490000, warranty: "36T" }, { name: "Intel Core i5-12400F", price: 3890000, warranty: "36T" }, { name: "Intel Core i5-13400F", price: 5200000, warranty: "36T" }, { name: "AMD Ryzen 5 5600", price: 3500000, warranty: "36T" } ],
+        mainboard: [ { name: "MSI PRO H610M-E", price: 1800000, warranty: "36T" }, { name: "Gigabyte B760M DS3H", price: 2900000, warranty: "36T" } ],
+        ram: [ { name: "2x8GB DDR4 3200MHz", price: 1100000, warranty: "36T" }, { name: "2x16GB DDR5 5600MHz", price: 2800000, warranty: "36T" } ],
+        vga: [ { name: "Không dùng VGA rời", price: 0, warranty: "0T" }, { name: "NVIDIA RTX 4060 8GB", price: 8200000, warranty: "36T" } ],
+        ssd: [ { name: "SSD 512GB NVMe", price: 950000, warranty: "36T" }, { name: "SSD 1TB NVMe Gen4", price: 1700000, warranty: "60T" } ],
+        hdd: [ { name: "HDD 1TB Sata 3", price: 1150000, warranty: "24T" }, { name: "HDD 2TB Sata 3", price: 1800000, warranty: "24T" } ],
+        cooler: [ { name: "Tản nhiệt khí Stock", price: 0, warranty: "0T" }, { name: "Tản nhiệt khí CR-1000", price: 350000, warranty: "12T" }, { name: "Tản nhiệt AIO 240mm", price: 1500000, warranty: "36T" } ],
+        monitor: [ { name: "Màn hình 24 inch 1080p 75Hz", price: 2500000, warranty: "24T" }, { name: "Màn hình 27 inch 2K 165Hz", price: 5500000, warranty: "36T" } ],
+        psu: [ { name: "Nguồn 650W 80 Plus Bronze", price: 1200000, warranty: "36T" } ],
+        'case': [ { name: "Vỏ Case Xigmatek (3 Fan)", price: 650000, warranty: "12T" } ]
+    };
+    
+    const allComponentDivs = document.querySelectorAll('.component');
+    const summaryTbody = document.getElementById('summary-tbody');
+    const totalPriceElement = document.getElementById('total-price');
+    const currencyFormatter = new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+    });
+    
+    const modal = document.getElementById('print-preview-modal');
+    const reviewBtn = document.getElementById('review-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const cancelPrintBtn = document.getElementById('cancel-print-btn');
+    const viewImageBtn = document.getElementById('view-image-btn');
+    const previewTbody = document.getElementById('preview-tbody');
+    const previewTotalElement = document.getElementById('preview-total');
+
+    const adminPanel = document.getElementById('admin-panel');
+    const toggleAdminBtn = document.getElementById('toggle-admin-btn');
+    const adminForm = document.getElementById('admin-form');
+    const adminTypeSelect = document.getElementById('admin-type');
+    const resetDbBtn = document.getElementById('reset-db-btn');
+
+    let currentDatabase = {}; 
+
+    function loadDatabase() {
+        let db = JSON.parse(localStorage.getItem('pcBuilderDatabase'));
+        if (!db) {
+            db = initialDatabase;
+            saveDatabase(db);
+        }
+        currentDatabase = db;
+    }
+
+    function saveDatabase(db) {
+        localStorage.setItem('pcBuilderDatabase', JSON.stringify(db));
+        currentDatabase = db;
+    }
+
+    function resetDatabase() {
+        if (confirm("Bạn có chắc muốn xóa TOÀN BỘ dữ liệu đã thêm và quay về kho gốc?")) {
+            localStorage.removeItem('pcBuilderDatabase');
+            location.reload();
+        }
+    }
+
+    function parseCurrency(text) {
+        if (!text) return 0;
+        return parseFloat(text.replace(/[^0-9,-]+/g,"")) || 0;
+    }
+
+    function populateSelectors() {
+        const allSelects = document.querySelectorAll('.component-select');
+        allSelects.forEach(sel => sel.innerHTML = '');
+        adminTypeSelect.innerHTML = '';
+
+        for (const componentType in currentDatabase) {
+            const selectElement = document.getElementById(componentType);
+            const labelText = selectElement.closest('.component').querySelector('label').textContent.replace(':', '');
+
+            if (selectElement) {
+                const defaultOption = document.createElement('option');
+                defaultOption.textContent = `-- Chọn ${labelText} --`;
+                defaultOption.value = "0";
+                defaultOption.dataset.price = "0";
+                defaultOption.dataset.warranty = "0T";
+                selectElement.appendChild(defaultOption);
+
+                currentDatabase[componentType].forEach(product => {
+                    const option = document.createElement('option');
+                    option.textContent = product.name;
+                    option.value = product.name;
+                    option.dataset.price = product.price;
+                    option.dataset.warranty = product.warranty;
+                    selectElement.appendChild(option);
+                });
+            }
+
+            const adminOption = document.createElement('option');
+            adminOption.value = componentType;
+            adminOption.textContent = labelText;
+            adminTypeSelect.appendChild(adminOption);
+        }
+    }
+
+    function updateBuildSummary() {
+        let totalBill = 0;
+        summaryTbody.innerHTML = ''; 
+        allComponentDivs.forEach(component => {
+            const select = component.querySelector('.component-select');
+            if (!select) return;
+            
+            const quantityInput = component.querySelector('.component-quantity');
+            const selectedOption = select.options[select.selectedIndex];
+            const price = parseFloat(selectedOption.dataset.price) || 0;
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            if (price > 0 && quantity > 0) {
+                const componentName = selectedOption.text;
+                const warranty = selectedOption.dataset.warranty || 'N/A';
+                const lineTotal = price * quantity;
+                totalBill += lineTotal;
+                
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>${componentName}</td>
+                    <td style="text-align: center;">${warranty}</td>
+                    <td style="text-align: center;">${quantity}</td>
+                    <td style="text-align: right;">${currencyFormatter.format(price)}</td>
+                    <td style="text-align: right; font-weight: bold;">${currencyFormatter.format(lineTotal)}</td>
+                `;
+                summaryTbody.appendChild(newRow);
+            }
+        });
+        totalPriceElement.textContent = currencyFormatter.format(totalBill);
+    }
+
+    function showPrintPreview() {
+        previewTbody.innerHTML = '';
+        let currentTotalBill = 0;
+        const mainRows = summaryTbody.querySelectorAll('tr');
+        if (mainRows.length === 0) {
+            alert("Chưa có linh kiện nào được chọn!");
+            return;
+        }
+        mainRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const name = cells[0].textContent;
+            const warranty = cells[1].textContent;
+            const quantity = cells[2].textContent;
+            const priceText = cells[3].textContent;
+            const lineTotalText = cells[4].textContent;
+            
+            currentTotalBill += parseCurrency(lineTotalText);
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" class="edit-name" value="${name}"></td>
+                <td><input type="text" class="edit-warranty" value="${warranty}" style="width: 80px; text-align: center;"></td>
+                <td><input type="number" class="edit-qty" value="${quantity}" style="width: 70px; text-align: center;"></td>
+                <td><input type="text" class="edit-price" value="${priceText}" style="text-align: right;"></td>
+                <td><input type="text" class="edit-line-total" value="${lineTotalText}" style="text-align: right; font-weight: bold;" disabled></td>
+            `;
+            previewTbody.appendChild(newRow);
+            
+            const qtyInput = newRow.querySelector('.edit-qty');
+            const priceInput = newRow.querySelector('.edit-price');
+            qtyInput.addEventListener('input', () => updateModalRow(newRow));
+            priceInput.addEventListener('input', () => updateModalRow(newRow));
+        });
+        previewTotalElement.textContent = currencyFormatter.format(currentTotalBill);
+        modal.style.display = 'block';
+    }
+
+    function hidePrintPreview() {
+        modal.style.display = 'none';
+    }
+
+    function updateModalRow(rowElement) {
+        const qtyInput = rowElement.querySelector('.edit-qty');
+        const priceInput = rowElement.querySelector('.edit-price');
+        const lineTotalInput = rowElement.querySelector('.edit-line-total');
+        const quantity = parseInt(qtyInput.value) || 0;
+        const price = parseCurrency(priceInput.value);
+        const lineTotal = quantity * price;
+        lineTotalInput.value = currencyFormatter.format(lineTotal);
+        updateModalTotal();
+    }
+
+    function updateModalTotal() {
+        let newGrandTotal = 0;
+        const allLineTotalInputs = previewTbody.querySelectorAll('.edit-line-total');
+        allLineTotalInputs.forEach(input => {
+            newGrandTotal += parseCurrency(input.value);
+        });
+        previewTotalElement.textContent = currencyFormatter.format(newGrandTotal);
+    }
+
+    // ===== HÀM 7 (CẬP NHẬT) =====
+    // Chụp ảnh và hiển thị ở trang mới (Đã làm đẹp)
+    function viewScreenshotInNewTab() {
+        const captureElement = document.getElementById('capture-area');
+        const inputs = captureElement.querySelectorAll('input');
+        inputs.forEach(input => input.style.border = 'none');
+        
+        // Thêm tùy chọn để ảnh chụp đẹp hơn
+        html2canvas(captureElement, {
+            scale: 2, // Tăng độ nét
+            useCORS: true // Cho phép tải ảnh (nếu có)
+        }).then(canvas => {
+            inputs.forEach(input => input.style.border = ''); // Bật lại viền
+
+            const imageURL = canvas.toDataURL('image/png');
+            
+            // Mở một cửa sổ mới
+            const newWindow = window.open();
+            
+            // Tạo nội dung HTML đẹp cho cửa sổ đó
+            const newPageContent = `
+                <!DOCTYPE html>
+                <html lang="vi">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Xem Cấu Hình PC</title>
+                    <style>
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                            background-color: #e9ecef; /* Nền xám nhạt */
+                            margin: 0;
+                            padding: 40px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            min-height: 100vh;
+                        }
+                        .header {
+                            text-align: center;
+                            margin-bottom: 30px;
+                        }
+                        h1 {
+                            color: #333;
+                            font-size: 2em;
+                            margin: 0;
+                        }
+                        p {
+                            font-size: 1.2em;
+                            color: #555;
+                        }
+                        img {
+                            max-width: 100%;
+                            height: auto;
+                            border: 1px solid #ddd;
+                            border-radius: 8px;
+                            background-color: #fff;
+                            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Đổ bóng */
+                        }
+                        .print-btn {
+                            margin-top: 30px;
+                            padding: 12px 25px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            color: #fff;
+                            background-color: #d90429;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            transition: opacity 0.2s;
+                        }
+                        .print-btn:hover { opacity: 0.85; }
+                        @media print {
+                            body {
+                                padding: 0;
+                                background-color: #fff;
+                            }
+                            .header, .print-btn {
+                                display: none;
+                            }
+                            img {
+                                box-shadow: none;
+                                border: none;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Cấu Hình PC Của Bạn</h1>
+                        <p>Đây là ảnh chụp cấu hình đã chọn.</p>
+                    </div>
+                    
+                    <img src="${imageURL}" alt="Cấu Hình PC">
+                    
+                    <button class="print-btn" onclick="window.print()">🖨️ In Cấu Hình Này</button>
+                </body>
+                </html>
+            `;
+            
+            // Ghi nội dung HTML vào trang mới
+            newWindow.document.write(newPageContent);
+            newWindow.document.close();
+
+            hidePrintPreview();
+        });
+    }
+    // ===== HẾT HÀM 7 =====
+
+
+    // --- HÀM 8: Xử lý Thêm Linh Kiện (Admin) ---
+    function handleAdminSubmit(event) {
+        event.preventDefault();
+
+        const type = document.getElementById('admin-type').value;
+        const name = document.getElementById('admin-name').value;
+        const price = parseFloat(document.getElementById('admin-price').value);
+        const warranty = document.getElementById('admin-warranty').value;
+
+        if (!name || isNaN(price) || !warranty || !type) {
+            alert('Vui lòng điền đầy đủ và đúng định dạng thông tin linh kiện (giá phải là số).');
+            return;
+        }
+
+        const newComponent = { name, price, warranty };
+        let db = currentDatabase;
+        
+        if (!db[type]) { db[type] = []; }
+        db[type].push(newComponent);
+        
+        saveDatabase(db);
+        alert(`Đã thêm "${name}" vào danh mục "${type}" thành công!`);
+        adminForm.reset();
+        populateSelectors();
+        updateBuildSummary();
+    }
+    
+    // --- GẮN SỰ KIỆN ---
+    allComponentDivs.forEach(component => {
+        const select = component.querySelector('.component-select');
+        const quantityInput = component.querySelector('.component-quantity');
+        if (select) select.addEventListener('change', updateBuildSummary);
+        if (quantityInput) quantityInput.addEventListener('input', updateBuildSummary);
+    });
+
+    reviewBtn.addEventListener('click', showPrintPreview);
+    closeModalBtn.addEventListener('click', hidePrintPreview);
+    cancelPrintBtn.addEventListener('click', hidePrintPreview);
+    
+    viewImageBtn.addEventListener('click', viewScreenshotInNewTab); // Đã cập nhật nút
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            hidePrintPreview();
+        }
+    }
+
+    adminForm.addEventListener('submit', handleAdminSubmit);
+    resetDbBtn.addEventListener('click', resetDatabase);
+    toggleAdminBtn.addEventListener('click', () => {
+        if (adminPanel.style.display === 'none') {
+            adminPanel.style.display = 'block';
+            toggleAdminBtn.textContent = 'Ẩn Admin';
+        } else {
+            adminPanel.style.display = 'none';
+            toggleAdminBtn.textContent = '👨‍💻 Mở Admin';
+        }
+    });
+
+    // --- KHỞI CHẠY LẦN ĐẦU ---
+    loadDatabase();
+    populateSelectors();
+    updateBuildSummary();
+
+});
+</script>
+</body>
+</html>
